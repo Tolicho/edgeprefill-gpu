@@ -218,7 +218,7 @@ ue_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
 
 srs_type = "srsRAN_4G"
 cmd = "{} '{}' {}".format(SRS_DEPLOY_SCRIPT, DEFAULT_SRS_HASHES[srs_type], srs_type)
-nodeb.addService(rspec.Execute(shell="bash", command=cmd))
+ue.addService(rspec.Execute(shell="bash", command=cmd))
 ue.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-cpu.sh"))
 ue.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-sdr-iface.sh"))
 
