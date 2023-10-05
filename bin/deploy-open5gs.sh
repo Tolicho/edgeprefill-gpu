@@ -1,6 +1,10 @@
+#!/bin/bash
 set -ex
 BINDIR=`dirname $0`
 source $BINDIR/common.sh
+
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo iptables -t nat -A POSTROUTING -s 10.45.0.0/16 ! -o ogstun -j MASQUERADE
 
 if [ -f $SRCDIR/open5gs-setup-complete ]; then
     echo "setup already ran; not running again"
@@ -13,7 +17,22 @@ sudo add-apt-repository -y ppa:open5gs/latest
 sudo add-apt-repository -y ppa:wireshark-dev/stable
 echo "wireshark-common wireshark-common/install-setuid boolean false" | sudo debconf-set-selections
 sudo apt update
-sudo apt install -y iperf3 open5gs tshark wireshark
+sudo apt-get install gnupg
+curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
+    sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu $(lsb_release -cs)/mongodb-org/6.0 multiverse" | \
+    sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+sudo apt update
+sudo apt install -y \
+    mongodb-org \
+    mongodb-mongosh \
+    iperf3 \
+    tshark \
+    wireshark
+
+sudo systemctl start mongod
+sudo systemctl enable mongod
+sudo apt install -y open5gs
 sudo cp /local/repository/etc/open5gs/* /etc/open5gs/
 
 sudo systemctl restart open5gs-mmed
@@ -32,10 +51,9 @@ sudo systemctl restart open5gs-nssfd
 sudo systemctl restart open5gs-bsfd
 sudo systemctl restart open5gs-udrd
 
-#TODO: find a better method for adding subscriber info
 cd $SRCDIR
 wget https://raw.githubusercontent.com/open5gs/open5gs/main/misc/db/open5gs-dbctl
 chmod +x open5gs-dbctl
-./open5gs-dbctl add_ue_with_apn 999990000000000 00112233445566778899aabbccddeeff 0ed47545168eafe2c39c075829a7b61f srsapn  # IMSI,K,OPC
-./open5gs-dbctl type 999990000000000 1  # APN type IPV4
+./open5gs-dbctl add_ue_with_apn 901700123456789 00112233445566778899aabbccddeeff 63BFA50EE6523365FF14C1F45F88737D srsapn  # IMSI,K,OPC
+./open5gs-dbctl type 901700123456789 1  # APN type IPV4
 touch $SRCDIR/open5gs-setup-complete

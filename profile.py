@@ -65,14 +65,16 @@ ETC_PATH = "/local/repository/etc"
 IP_NAT_SCRIPT = os.path.join(BIN_PATH, "add-nat-and-ip-forwarding.sh")
 SRS_DEPLOY_SCRIPT = os.path.join(BIN_PATH, "deploy-srs.sh")
 OPEN5GS_DEPLOY_SCRIPT = os.path.join(BIN_PATH, "deploy-open5gs.sh")
-LOWLAT_IMG = "urn:publicid:IDN+emulab.net+image+PowderTeam:U18LL-SRSLTE"
-UBUNTU_IMG = "urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU18-64-STD"
 COMP_MANAGER_ID = "urn:publicid:IDN+emulab.net+authority+cm"
-DEFAULT_SRS_HASH = "release_22_04_1"
-
 BENCH_SDR_IDS = {
     "bench_a": ["oai-wb-a1", "oai-wb-a2"],
     "bench_b": ["oai-wb-b1", "oai-wb-b2"],
+}
+UBUNTU_IMG = "urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU22-64-STD"
+DEFAULT_SRS_HASHES = {
+    "srsGUI": "a277a1ac210b5020060360e74b6d6e027355af05",
+    "srsRAN_4G": "release_23_04_1",
+    "srsRAN_Project": "release_23_5",
 }
 
 pc = portal.Context()
@@ -160,7 +162,7 @@ cn_node.addService(rspec.Execute(shell="bash", command=OPEN5GS_DEPLOY_SCRIPT))
 if params.srsran_commit_hash:
     srsran_hash = params.srsran_commit_hash
 else:
-    srsran_hash = DEFAULT_SRS_HASH
+    srsran_hash = UBUNTU_IMG
 
 nodeb = request.RawPC("nodeb-comp")
 nodeb.component_manager_id = COMP_MANAGER_ID
@@ -182,7 +184,8 @@ cn_link.addInterface(nodeb_cn_if)
 nodeb_usrp_if = nodeb.addInterface("nodeb-usrp-if")
 nodeb_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
 
-cmd = '{} "{}"'.format(SRS_DEPLOY_SCRIPT, srsran_hash)
+srs_type = "srsRAN_Project"
+cmd = "{} '{}' {}".format(SRS_DEPLOY_SCRIPT, DEFAULT_SRS_HASHES[srs_type], srs_type)
 nodeb.addService(rspec.Execute(shell="bash", command=cmd))
 nodeb.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-cpu.sh"))
 nodeb.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-sdr-iface.sh"))
@@ -212,8 +215,10 @@ else:
 
 ue_usrp_if = ue.addInterface("ue-usrp-if")
 ue_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
-cmd = '{} "{}"'.format(SRS_DEPLOY_SCRIPT, srsran_hash)
-ue.addService(rspec.Execute(shell="bash", command=cmd))
+
+srs_type = "srsRAN_4G"
+cmd = "{} '{}' {}".format(SRS_DEPLOY_SCRIPT, DEFAULT_SRS_HASHES[srs_type], srs_type)
+nodeb.addService(rspec.Execute(shell="bash", command=cmd))
 ue.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-cpu.sh"))
 ue.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-sdr-iface.sh"))
 

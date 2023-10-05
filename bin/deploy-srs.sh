@@ -1,54 +1,88 @@
 set -ex
 COMMIT_HASH=$1
+SRS_TYPE=$2
 BINDIR=`dirname $0`
-source $BINDIR/common.sh
+SRCDIR=/var/tmp
+CFGDIR=/local/repository/etc
+SRS_REPO=https://github.com/srsRAN/$SRS_TYPE
 
-if [ -f $SRCDIR/srs-setup-complete ]; then
+if [ -f $SRCDIR/$SRS_TYPE-setup-complete ]; then
     echo "setup already ran; not running again"
     exit 0
 fi
 
-while ! wget -qO - http://repos.emulab.net/emulab.key | sudo apt-key add -
-do
-    echo Failed to get emulab key, retrying
-done
+install_srsran_common () {
+    sudo apt update
+    sudo apt install -y \
+        cmake \
+        libfftw3-dev \
+        libmbedtls-dev \
+        libsctp-dev \
+        libzmq3-dev
+}
 
-while ! sudo add-apt-repository -y http://repos.emulab.net/powder/ubuntu/
-do
-    echo Failed to get johnsond ppa, retrying
-done
+clone_build_install () {
+    cd $SRCDIR
+    git clone $SRS_REPO
+    cd $SRS_TYPE
+    git checkout $COMMIT_HASH
+    mkdir build
+    cd build
+    if [ "$SRS_TYPE" = "srsRAN_Project" ]; then
+        cmake ../ -DENABLE_EXPORT=ON -DENABLE_ZEROMQ=ON
+    else
+        cmake ../
+    fi
+    make -j `nproc`
+    sudo make install
+    sudo ldconfig
+}
 
-while ! sudo apt-get update
-do
-    echo Failed to update, retrying
-done
+install_srsran_4g () {
+    install_srsran_common
+    sudo apt install -y \
+        build-essential \
+        libboost-program-options-dev \
+        libconfig++-dev \
 
-sudo apt install -y build-essential \
-    cmake \
-    iperf3 \
-    i7z \
-    libfftw3-dev \
-    libmbedtls-dev \
-    libboost-program-options-dev \
-    libconfig++-dev \
-    libsctp-dev \
-    libuhd-dev \
-    libzmq3-dev \
-    linux-tools-`uname -r` \
-    numactl \
-    uhd-host
+    clone_build_install
+    sudo srsran_install_configs.sh service
+    sudo cp /local/repository/etc/srsran/* /etc/srsran/
+}
 
-cd $SRCDIR
-git clone $SRS_REPO srsran
-cd srsran
-git checkout $COMMIT_HASH
-mkdir build
-cd build
-cmake ../
-make -j `nproc`
-sudo make install
-sudo ldconfig
-sudo srsran_install_configs.sh service
-sudo cp /local/repository/etc/srsran/* /etc/srsran/
+install_srsran_project () {
+    install_srsran_common
+    sudo apt install -y \
+        make \
+        gcc \
+        g++ \
+        pkg-config \
+        libyaml-cpp-dev \
+        libgtest-dev
 
-touch $SRCDIR/srs-setup-complete
+    clone_build_install
+}
+
+install_srsran_gui () {
+    sudo apt install -y \
+        libboost-system-dev \
+        libboost-test-dev \
+        libboost-thread-dev \
+        libqwt-qt5-dev \
+        qtbase5-dev
+
+    clone_build_install
+}
+
+if [ "$SRS_TYPE" = "srsRAN_4G" ]; then
+    install_srsran_4g
+elif [ "$SRS_TYPE" = "srsRAN_Project" ]; then
+    install_srsran_project
+elif [ "$SRS_TYPE" = "srsGUI" ]; then
+    install_srsran_gui
+else
+    echo "unknown SRS_TYPE: $SRS_TYPE"
+    exit 1
+fi
+
+touch $SRCDIR/$SRS_TYPE-setup-complete
