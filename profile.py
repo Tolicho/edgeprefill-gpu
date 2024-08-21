@@ -9,11 +9,11 @@ import geni.rspec.emulab.pnext as PN
 tourDescription = """
 ###  srsRAN on POWDER Paired Radio Workbench
 
-This profile instantiates an experiment that can deploy an end to end 5G or LTE
-network using srsRAN and Open5GS using one of the Paired Radio Workbenches
-available on POWDER. These workbenched all include two USRP X310s, each with at
-least one UBX160 daughterboard, and a common 10 MHz clock and PPS reference
-provided by an OctoClock. The X310s on `bench_b` include two UBX160
+This profile instantiates an experiment that can deploy an end to end 5G network
+using srsRAN (gNB), Open5GS (CN5G), OAI (nrUE) using one of the Paired Radio
+Workbenches available on POWDER. These workbenched all include two USRP X310s,
+each with at least one UBX160 daughterboard, and a common 10 MHz clock and PPS
+reference provided by an OctoClock. The X310s on `bench_b` include two UBX160
 daughterboards, making them suitable for 5G NSA or MIMO configurations. The
 transceivers are connected via SMA cables through 30 dB attenuators, providing
 for an interference free RF environment.
@@ -21,8 +21,8 @@ for an interference free RF environment.
 The following will be deployed on server-class compute nodes:
 
 - Open5GS 5G/LTE core network
-- srsRAN gNodeB/eNodeB (fiber connection to 5GCN and X310)
-- srsRAN 5G/LTE UE (fiber connection to other X310)
+- srsRAN gNodeB (fiber connection to CN5G and X310)
+- (someday..) OAI 5G UE (fiber connection to other X310)
 
 """
 
@@ -47,14 +47,14 @@ On `nodeb-comp`:
 
 ```
 # start gNB (we use numactl to bind the process to a single CPU to improve performance)
-sudo numactl --membind=0 --cpunodebind=0 srsenb /etc/srsran/enb-sa.conf
+sudo numactl --membind=0 --cpunodebind=0 /var/tmp/srsRAN_Project/build/apps/gnb/gnb -c /local/repository/etc/srsran/gnb_rf_x310.yml
 ```
 
 On `ue-comp`:
 
 ```
-# start UE
-sudo numactl --membind=0 --cpunodebind=0 srsue /etc/srsran/ue-sa.conf
+# build and start OAI UE
+
 ```
 
 """
