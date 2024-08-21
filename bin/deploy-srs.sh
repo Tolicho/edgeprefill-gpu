@@ -12,7 +12,26 @@ if [ -f $SRCDIR/$SRS_TYPE-setup-complete ]; then
 fi
 
 install_srsran_common () {
+    while ! wget -qO - http://repos.emulab.net/emulab.key | sudo apt-key add -
+    do
+        echo Failed to get emulab key, retrying
+    done
+
+    while ! sudo add-apt-repository -y http://repos.emulab.net/powder/ubuntu/
+    do
+        echo Failed to get johnsond ppa, retrying
+    done
+
+    while ! sudo apt-get update
+    do
+        echo Failed to update, retrying
+    done
+
     sudo apt update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        uhd-host \
+        libuhd-dev
+
     sudo apt install -y \
         cmake \
         libfftw3-dev \
