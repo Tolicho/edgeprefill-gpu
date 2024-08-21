@@ -18,7 +18,8 @@ install_srsran_common () {
         libfftw3-dev \
         libmbedtls-dev \
         libsctp-dev \
-        libzmq3-dev
+        libzmq3-dev \
+        numactl
 }
 
 clone_build_install () {
