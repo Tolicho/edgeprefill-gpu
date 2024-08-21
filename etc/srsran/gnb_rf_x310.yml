@@ -1,0 +1,41 @@
+gnb_id: 411
+gnb_id_bit_length: 32
+
+amf:
+  addr: 192.168.1.1
+  bind_addr: 192.168.1.2
+
+ru_sdr:
+  device_driver: uhd
+  device_args: type=x300
+  tx_gain: 30
+  rx_gain: 30
+  srate: 92.16
+  lo_offset: 45
+  clock: internal
+  sync: internal
+  time_alignment_calibration: 0
+
+cell_cfg:
+  dl_arfcn: 632628
+  band: 78
+  channel_bandwidth_MHz: 20
+  common_scs: 30
+  nof_antennas_dl: 1
+  nof_antennas_ul: 1
+  plmn: "90170"
+  tac: 7
+  pci: 1
+
+log:
+  all_level: info
+  rrc_level: debug
+
+pcap:
+  mac_enable: true
+  mac_filename: /tmp/gnb_mac.pcap
+  ngap_enable: true
+  ngap_filename: /tmp/gnb_ngap.pcap
+
+metrics:
+  autostart_stdout_metrics: true

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import geni.portal as portal
 import geni.rspec.pg as rspec
@@ -10,11 +9,11 @@ import geni.rspec.emulab.pnext as PN
 tourDescription = """
 ###  srsRAN on POWDER Paired Radio Workbench
 
-This profile instantiates an experiment that can deploy an end to end 5G or LTE
-network using srsRAN and Open5GS using one of the Paired Radio Workbenches
-available on POWDER. These workbenched all include two USRP X310s, each with at
-least one UBX160 daughterboard, and a common 10 MHz clock and PPS reference
-provided by an OctoClock. The X310s on `bench_b` include two UBX160
+This profile instantiates an experiment that can deploy an end to end 5G network
+using srsRAN (gNB), Open5GS (CN5G), OAI (nrUE) using one of the Paired Radio
+Workbenches available on POWDER. These workbenched all include two USRP X310s,
+each with at least one UBX160 daughterboard, and a common 10 MHz clock and PPS
+reference provided by an OctoClock. The X310s on `bench_b` include two UBX160
 daughterboards, making them suitable for 5G NSA or MIMO configurations. The
 transceivers are connected via SMA cables through 30 dB attenuators, providing
 for an interference free RF environment.
@@ -22,8 +21,8 @@ for an interference free RF environment.
 The following will be deployed on server-class compute nodes:
 
 - Open5GS 5G/LTE core network
-- srsRAN gNodeB/eNodeB (fiber connection to 5GCN and X310)
-- srsRAN 5G/LTE UE (fiber connection to other X310)
+- srsRAN gNodeB (fiber connection to CN5G and X310)
+- (someday..) OAI 5G UE (fiber connection to other X310)
 
 """
 
@@ -48,14 +47,14 @@ On `nodeb-comp`:
 
 ```
 # start gNB (we use numactl to bind the process to a single CPU to improve performance)
-sudo numactl --membind=0 --cpunodebind=0 srsenb /etc/srsran/enb-sa.conf
+sudo numactl --membind=0 --cpunodebind=0 /var/tmp/srsRAN_Project/build/apps/gnb/gnb -c /local/repository/etc/srsran/gnb_rf_x310.yml
 ```
 
 On `ue-comp`:
 
 ```
-# start UE
-sudo numactl --membind=0 --cpunodebind=0 srsue /etc/srsran/ue-sa.conf
+# build and start OAI UE
+
 ```
 
 """
@@ -63,7 +62,8 @@ sudo numactl --membind=0 --cpunodebind=0 srsue /etc/srsran/ue-sa.conf
 BIN_PATH = "/local/repository/bin"
 ETC_PATH = "/local/repository/etc"
 IP_NAT_SCRIPT = os.path.join(BIN_PATH, "add-nat-and-ip-forwarding.sh")
-SRS_DEPLOY_SCRIPT = os.path.join(BIN_PATH, "deploy-srs.sh")
+DEFAULT_SRSRAN_HASH = "a15950301c5f3a1a166b79bb6c9ee901a4e8c2dd"
+SRSRAN_DEPLOY_SCRIPT = os.path.join(BIN_PATH, "deploy-srsran.sh")
 OPEN5GS_DEPLOY_SCRIPT = os.path.join(BIN_PATH, "deploy-open5gs.sh")
 COMP_MANAGER_ID = "urn:publicid:IDN+emulab.net+authority+cm"
 BENCH_SDR_IDS = {
@@ -71,11 +71,6 @@ BENCH_SDR_IDS = {
     "bench_b": ["oai-wb-b1", "oai-wb-b2"],
 }
 UBUNTU_IMG = "urn:publicid:IDN+emulab.net+image+emulab-ops//UBUNTU22-64-STD"
-DEFAULT_SRS_HASHES = {
-    "srsGUI": "a277a1ac210b5020060360e74b6d6e027355af05",
-    "srsRAN_4G": "release_23_04_1",
-    "srsRAN_Project": "release_23_5",
-}
 
 pc = portal.Context()
 
@@ -87,7 +82,7 @@ pc.defineParameter(
     name="sdr_nodetype",
     description="Type of compute node paired with the SDRs",
     typ=portal.ParameterType.STRING,
-    defaultValue=node_types[1],
+    defaultValue=node_types[0],
     legalValues=node_types
 )
 
@@ -102,7 +97,6 @@ pc.defineParameter(
 bench_ids = [
     ("bench_a", "Paired Radio Workbench A"),
     ("bench_b", "Paired Radio Workbench B"),
-    ("bench_c", "Paired Radio Workbench C (Powder staff only)"),
 ]
 pc.defineParameter(
     name="bench_id",
@@ -162,7 +156,7 @@ cn_node.addService(rspec.Execute(shell="bash", command=OPEN5GS_DEPLOY_SCRIPT))
 if params.srsran_commit_hash:
     srsran_hash = params.srsran_commit_hash
 else:
-    srsran_hash = UBUNTU_IMG
+    srsran_hash = DEFAULT_SRSRAN_HASH
 
 nodeb = request.RawPC("nodeb-comp")
 nodeb.component_manager_id = COMP_MANAGER_ID
@@ -184,8 +178,7 @@ cn_link.addInterface(nodeb_cn_if)
 nodeb_usrp_if = nodeb.addInterface("nodeb-usrp-if")
 nodeb_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
 
-srs_type = "srsRAN_Project"
-cmd = "{} '{}' {}".format(SRS_DEPLOY_SCRIPT, DEFAULT_SRS_HASHES[srs_type], srs_type)
+cmd = "{} '{}'".format(SRSRAN_DEPLOY_SCRIPT, srsran_hash)
 nodeb.addService(rspec.Execute(shell="bash", command=cmd))
 nodeb.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-cpu.sh"))
 nodeb.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-sdr-iface.sh"))
@@ -215,11 +208,6 @@ else:
 
 ue_usrp_if = ue.addInterface("ue-usrp-if")
 ue_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
-
-srs_type = "srsRAN_4G"
-cmd = "{} '{}' {}".format(SRS_DEPLOY_SCRIPT, DEFAULT_SRS_HASHES[srs_type], srs_type)
-ue.addService(rspec.Execute(shell="bash", command=cmd))
-ue.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-cpu.sh"))
 ue.addService(rspec.Execute(shell="bash", command="/local/repository/bin/tune-sdr-iface.sh"))
 
 ue_sdr = request.RawPC("ue-sdr")
