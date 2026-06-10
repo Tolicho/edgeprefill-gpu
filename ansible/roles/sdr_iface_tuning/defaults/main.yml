@@ -1,4 +1,0 @@
-sdr_iface_address: 192.168.40.1
-sdr_iface_mtu: 9000
-sdr_iface_wmem_max: 24912805
-sdr_iface_rmem_max: 24912805

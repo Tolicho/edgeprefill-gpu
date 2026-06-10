@@ -166,29 +166,36 @@ request = pc.makeRequestRSpec()
 # and its playbook runs against that group.
 request.addRole(
     Role(
-        "open5gs_cn",
+        "open5gs",
         path="ansible",
-        playbooks=[Playbook("open5gs_cn", path="open5gs_cn.yml")]
+        playbooks=[Playbook("open5gs", path="open5gs.yml")]
     )
 )
 request.addRole(
     Role(
-        "ocudu_gnb",
+        "ocudu",
         path="ansible",
-        playbooks=[Playbook("ocudu_gnb", path="ocudu_gnb.yml")]
+        playbooks=[Playbook("ocudu", path="ocudu.yml")]
     )
 )
 request.addRole(
     Role(
-        "srsran_4g_ue",
+        "srsran_4g",
         path="ansible",
-        playbooks=[Playbook("srsran_4g_ue", path="srsran_4g_ue.yml")]
+        playbooks=[Playbook("srsran_4g", path="srsran_4g.yml")]
     )
 )
 
 # The OCUDU role builds the 5GC in-tree by default; we deploy Open5GS on
 # cn-host directly, so skip the 5GC build on the gNB node.
 request.addOverride(Override("ocudu_build_5gc", value="false"))
+
+# Build OCUDU and srsRAN_4G with UHD support; the workbench uses real X310s.
+request.addOverride(Override("ocudu_enable_uhd", value="true"))
+request.addOverride(Override("srsran_4g_enable_uhd", value="true"))
+
+# Override the bundled Open5GS samples with this profile's configs.
+request.addOverride(Override("open5gs_config_src", value="/local/repository/etc/open5gs/"))
 
 if params.deployric:
     request.addOverride(Override("ocudu_enable_du_e2", value="true"))
@@ -205,7 +212,7 @@ cn_link = request.Link("cn-link")
 cn_link.addInterface(cn_if)
 
 if params.do_deploy:
-    cn_node.bindRole(RoleBinding("open5gs_cn"))
+    cn_node.bindRole(RoleBinding("open5gs"))
     cn_node.addService(rspec.Execute(shell="sh", command=CLIENT_CMD))
 
 # gNB compute node: OCUDU via Ansible.
@@ -230,7 +237,7 @@ nodeb_usrp_if = nodeb.addInterface("nodeb-usrp-if")
 nodeb_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
 
 if params.do_deploy:
-    nodeb.bindRole(RoleBinding("ocudu_gnb"))
+    nodeb.bindRole(RoleBinding("ocudu"))
     nodeb.addService(rspec.Execute(shell="sh", command=HEAD_CMD))
     nodeb.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_CMD))
     nodeb.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_REQS_CMD))
@@ -263,7 +270,7 @@ ue_usrp_if = ue.addInterface("ue-usrp-if")
 ue_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
 
 if params.do_deploy:
-    ue.bindRole(RoleBinding("srsran_4g_ue"))
+    ue.bindRole(RoleBinding("srsran_4g"))
     ue.addService(rspec.Execute(shell="sh", command=CLIENT_CMD))
 
 ue_sdr = request.RawPC("ue-sdr")

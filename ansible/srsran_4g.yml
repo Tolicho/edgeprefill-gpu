@@ -1,9 +1,14 @@
 - name: srsRAN_4G nrUE installation
-  hosts: srsran_4g_ue
+  hosts: srsran_4g
   become: true
   roles:
     - role: dustinmaas.nextg_utils.srsran_4g
-    - role: sdr_iface_tuning
+    - role: dustinmaas.nextg_utils.system_tuning
+      vars:
+        system_tuning_disable_cstates: false
+        system_tuning_disable_turbo: false
+        system_tuning_disable_smt: false
+        system_tuning_jumbo_iface_address: 192.168.40.1
   post_tasks:
     - name: Install profile-provided UE config
       ansible.builtin.copy:

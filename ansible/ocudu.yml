@@ -1,12 +1,14 @@
 - name: OCUDU gNB installation
-  hosts: ocudu_gnb
+  hosts: ocudu
   become: true
   roles:
     - role: dustinmaas.nextg_utils.srs_oran_sc_ric
       when: ocudu_enable_du_e2 | default(false) | bool
     - role: dustinmaas.nextg_utils.ocudu
-    - role: cpu_tuning
-    - role: sdr_iface_tuning
+    - role: dustinmaas.nextg_utils.system_tuning
+      vars:
+        system_tuning_disable_smt: true
+        system_tuning_jumbo_iface_address: 192.168.40.1
   post_tasks:
     - name: Install profile-provided gNB config
       ansible.builtin.copy:

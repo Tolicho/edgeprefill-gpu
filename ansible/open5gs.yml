@@ -1,0 +1,6 @@
+- name: Open5GS core network installation
+  hosts: open5gs
+  become: true
+  roles:
+    - role: dustinmaas.nextg_utils.open5gs
+    - role: dustinmaas.nextg_utils.nat_forwarding
