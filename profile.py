@@ -26,8 +26,7 @@ The following will be deployed on server-class compute nodes:
 - OCUDU gNodeB (`cudu`, fiber connection to CN5G and X310)
 - srsRAN_4G nrUE (`ue`, fiber connection to other X310)
 
-OCUDU and srsRAN_4G are installed via the `dustinmaas.nextg_utils` Ansible
-collection.
+All are installed via the `https://gitlab.flux.utah.edu/dmaas/ansible-nextg` Ansible collection.
 
 """
 
