@@ -14,4 +14,3 @@ udr:
     client:
       scp:
         - uri: http://127.0.0.200:7777
-

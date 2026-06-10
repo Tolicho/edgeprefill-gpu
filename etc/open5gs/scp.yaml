@@ -13,4 +13,3 @@ scp:
     client:
       nrf:
         - uri: http://127.0.0.10:7777
-

@@ -7,4 +7,3 @@ global:
     ue: 1024  # The number of UE can be increased depending on memory size.
 pcrf:
   freeDiameter: /etc/freeDiameter/pcrf.conf
-
