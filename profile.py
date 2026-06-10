@@ -22,9 +22,9 @@ for an interference free RF environment.
 
 The following will be deployed on server-class compute nodes:
 
-- Open5GS 5G/LTE core network (`cn-host`)
-- OCUDU gNodeB (`nodeb-comp`, fiber connection to CN5G and X310)
-- srsRAN_4G nrUE (`ue-comp`, fiber connection to other X310)
+- Open5GS 5G/LTE core network (`cn5g`)
+- OCUDU gNodeB (`cudu`, fiber connection to CN5G and X310)
+- srsRAN_4G nrUE (`ue`, fiber connection to other X310)
 
 OCUDU and srsRAN_4G are installed via the `dustinmaas.nextg_utils` Ansible
 collection.
@@ -39,14 +39,14 @@ all of the compute nodes show "Finished" before proceeding.
 
 After all startup scripts have finished...
 
-On `cn-host`:
+On `cn5g`:
 
 ```
 # watch the Open5GS AMF log
 sudo tail -f /var/log/open5gs/amf.log
 ```
 
-On `nodeb-comp`:
+On `cudu`:
 
 ```
 # start gNB (numactl pins the process to a single CPU to improve performance)
@@ -54,7 +54,7 @@ sudo numactl --membind=0 --cpunodebind=0 /opt/ocudu/build/apps/gnb/gnb \\
     -c /etc/ocudu/gnb.yml
 ```
 
-On `ue-comp`:
+On `ue`:
 
 ```
 # start srsRAN_4G nrUE
@@ -202,7 +202,7 @@ if params.deployric:
     request.addOverride(Override("ocudu_e2sm_kpm_enabled", value="true"))
 
 # CN host: Open5GS built from source via the open5gs Ansible role.
-cn_node = request.RawPC("cn-host")
+cn_node = request.RawPC("cn5g")
 cn_node.component_manager_id = COMP_MANAGER_ID
 cn_node.hardware_type = params.cn_nodetype
 cn_node.disk_image = UBUNTU_IMG
@@ -216,7 +216,7 @@ if params.do_deploy:
     cn_node.addService(rspec.Execute(shell="sh", command=CLIENT_CMD))
 
 # gNB compute node: OCUDU via Ansible.
-nodeb = request.RawPC("nodeb-comp")
+nodeb = request.RawPC("cudu")
 nodeb.component_manager_id = COMP_MANAGER_ID
 
 if params.nodeb_node_id:
@@ -243,7 +243,7 @@ if params.do_deploy:
     nodeb.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_REQS_CMD))
     nodeb.addService(rspec.Execute(shell="sh", command=TAIL_CMD))
 
-nodeb_sdr = request.RawPC("nodeb-sdr")
+nodeb_sdr = request.RawPC("ru-sdr")
 nodeb_sdr.component_manager_id = COMP_MANAGER_ID
 nodeb_sdr.component_id = BENCH_SDR_IDS[params.bench_id][0]
 nodeb_sdr_if = nodeb_sdr.addInterface("nodeb-sdr-if")
@@ -253,7 +253,7 @@ nodeb_sdr_link.addInterface(nodeb_usrp_if)
 nodeb_sdr_link.addInterface(nodeb_sdr_if)
 
 # UE compute node: srsRAN_4G via Ansible.
-ue = request.RawPC("ue-comp")
+ue = request.RawPC("ue")
 ue.component_manager_id = COMP_MANAGER_ID
 
 if params.ue_node_id:
