@@ -149,7 +149,7 @@ cn_node.disk_image = UBUNTU_IMG
 cn_if = cn_node.addInterface("cn-if")
 cn_if.addAddress(rspec.IPv4Address("192.168.1.1", "255.255.255.0"))
 cn_link = request.Link("cn-link")
-cn_link.bandwidth = 10*1000*1000
+# cn_link.bandwidth = 10*1000*1000
 cn_link.addInterface(cn_if)
 cn_node.addService(rspec.Execute(shell="bash", command=IP_NAT_SCRIPT))
 cn_node.addService(rspec.Execute(shell="bash", command=OPEN5GS_DEPLOY_SCRIPT))
@@ -190,7 +190,7 @@ nodeb_sdr.component_id = BENCH_SDR_IDS[params.bench_id][0]
 nodeb_sdr_if = nodeb_sdr.addInterface("nodeb-sdr-if")
 
 nodeb_sdr_link = request.Link("nodeb-sdr-link")
-nodeb_sdr_link.bandwidth = 10*1000*1000
+# nodeb_sdr_link.bandwidth = 10*1000*1000
 nodeb_sdr_link.addInterface(nodeb_usrp_if)
 nodeb_sdr_link.addInterface(nodeb_sdr_if)
 
@@ -217,7 +217,7 @@ ue_sdr.component_id = BENCH_SDR_IDS[params.bench_id][1]
 ue_sdr_if = ue_sdr.addInterface("ue-sdr-if")
 
 ue_sdr_link = request.Link("ue-sdr-link")
-ue_sdr_link.bandwidth = 10*1000*1000
+# ue_sdr_link.bandwidth = 10*1000*1000
 ue_sdr_link.addInterface(ue_usrp_if)
 ue_sdr_link.addInterface(ue_sdr_if)
 
