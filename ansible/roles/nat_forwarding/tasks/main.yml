@@ -1,0 +1,16 @@
+- name: Enable IPv4 forwarding
+  ansible.builtin.command:
+    cmd: sysctl -w net.ipv4.ip_forward=1
+  changed_when: true
+
+- name: Check for UE-subnet NAT masquerade rule
+  ansible.builtin.command:
+    cmd: iptables -t nat -C POSTROUTING -s 10.45.0.0/16 ! -o ogstun -j MASQUERADE
+  register: nat_check
+  failed_when: false
+  changed_when: false
+
+- name: Install UE-subnet NAT masquerade rule
+  ansible.builtin.command:
+    cmd: iptables -t nat -A POSTROUTING -s 10.45.0.0/16 ! -o ogstun -j MASQUERADE
+  when: nat_check.rc != 0

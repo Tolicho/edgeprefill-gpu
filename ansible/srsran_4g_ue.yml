@@ -1,0 +1,12 @@
+- name: srsRAN_4G nrUE installation
+  hosts: srsran_4g_ue
+  become: true
+  roles:
+    - role: dustinmaas.nextg_utils.srsran_4g
+    - role: sdr_iface_tuning
+  post_tasks:
+    - name: Install profile-provided UE config
+      ansible.builtin.copy:
+        src: /local/repository/etc/srsran/ue.conf
+        dest: /etc/srsran/ue.conf
+        remote_src: true

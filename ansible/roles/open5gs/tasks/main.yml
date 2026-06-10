@@ -1,0 +1,164 @@
+- name: Check for Open5GS setup marker
+  ansible.builtin.stat:
+    path: "{{ open5gs_setup_marker }}"
+  register: open5gs_marker
+
+- name: Build and install Open5GS
+  when: not open5gs_marker.stat.exists
+  block:
+    - name: Install bootstrap packages
+      ansible.builtin.apt:
+        name:
+          - software-properties-common
+          - gnupg
+          - curl
+          - ca-certificates
+        state: present
+        update_cache: true
+
+    - name: Add Wireshark PPA
+      ansible.builtin.apt_repository:
+        repo: "{{ wireshark_ppa | default('ppa:wireshark-dev/stable') }}"
+        state: present
+
+    - name: Preseed wireshark-common to skip setuid prompt
+      ansible.builtin.debconf:
+        name: wireshark-common
+        question: wireshark-common/install-setuid
+        vtype: boolean
+        value: "false"
+
+    - name: Fetch MongoDB GPG key
+      ansible.builtin.get_url:
+        url: "https://pgp.mongodb.com/server-{{ mongodb_version }}.asc"
+        dest: "/tmp/mongodb-server-{{ mongodb_version }}.asc"
+        mode: "0644"
+
+    - name: Dearmor MongoDB GPG key
+      ansible.builtin.command:
+        cmd: "gpg -o /usr/share/keyrings/mongodb-server-{{ mongodb_version }}.gpg --dearmor --yes /tmp/mongodb-server-{{ mongodb_version }}.asc"
+      args:
+        creates: "/usr/share/keyrings/mongodb-server-{{ mongodb_version }}.gpg"
+
+    - name: Add MongoDB apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-{{ mongodb_version }}.gpg ] https://repo.mongodb.org/apt/ubuntu {{ ansible_distribution_release }}/mongodb-org/{{ mongodb_version }} multiverse"
+        filename: "mongodb-org-{{ mongodb_version }}"
+        state: present
+        update_cache: true
+
+    - name: Install MongoDB, tooling, and Open5GS build deps
+      ansible.builtin.apt:
+        name:
+          - mongodb-org
+          - mongodb-mongosh
+          - iperf3
+          - tshark
+          - wireshark
+          - python3-pip
+          - python3-setuptools
+          - python3-wheel
+          - ninja-build
+          - build-essential
+          - flex
+          - bison
+          - git
+          - cmake
+          - meson
+          - libsctp-dev
+          - libgnutls28-dev
+          - libgcrypt-dev
+          - libssl-dev
+          - libidn11-dev
+          - libmongoc-dev
+          - libbson-dev
+          - libyaml-dev
+          - libnghttp2-dev
+          - libmicrohttpd-dev
+          - libcurl4-gnutls-dev
+          - libtins-dev
+          - libtalloc-dev
+        state: present
+
+    - name: Enable and start mongod
+      ansible.builtin.systemd:
+        name: mongod
+        enabled: true
+        state: started
+
+    - name: Clone Open5GS
+      ansible.builtin.git:
+        repo: "{{ open5gs_repo }}"
+        dest: "{{ open5gs_src_dir }}"
+        version: "{{ open5gs_version }}"
+        update: false
+
+    - name: Configure Open5GS build (meson setup)
+      ansible.builtin.command:
+        cmd: "meson setup {{ open5gs_build_dir }}"
+        chdir: "{{ open5gs_src_dir }}"
+      args:
+        creates: "{{ open5gs_build_dir }}/build.ninja"
+
+    - name: Build Open5GS (ninja)
+      ansible.builtin.command:
+        cmd: "ninja -C {{ open5gs_build_dir }}"
+      args:
+        creates: "{{ open5gs_build_dir }}/src/amf/open5gs-amfd"
+
+    - name: Ensure Open5GS log directory exists
+      ansible.builtin.file:
+        path: "{{ open5gs_log_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure Open5GS config directory exists
+      ansible.builtin.file:
+        path: /etc/open5gs
+        state: directory
+        mode: "0755"
+
+    - name: Install Open5GS configs
+      ansible.builtin.copy:
+        src: "{{ open5gs_config_src }}"
+        dest: /etc/open5gs/
+        remote_src: true
+
+    - name: Install Open5GS systemd template unit
+      ansible.builtin.template:
+        src: open5gs@.service.j2
+        dest: /etc/systemd/system/open5gs@.service
+        mode: "0644"
+      register: open5gs_unit
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: open5gs_unit.changed
+
+    - name: Enable and start Open5GS daemons
+      ansible.builtin.systemd:
+        name: "open5gs@{{ item }}.service"
+        enabled: true
+        state: restarted
+      loop: "{{ open5gs_services }}"
+
+    - name: Fetch open5gs-dbctl
+      ansible.builtin.get_url:
+        url: "{{ open5gs_dbctl_url }}"
+        dest: "{{ open5gs_dbctl_path }}"
+        mode: "0755"
+
+    - name: Seed UE in Open5GS subscriber DB
+      ansible.builtin.command:
+        cmd: "{{ open5gs_dbctl_path }} add_ue_with_apn {{ open5gs_imsi }} {{ open5gs_k }} {{ open5gs_opc }} {{ open5gs_apn }}"
+
+    - name: Set subscriber APN type to IPv4
+      ansible.builtin.command:
+        cmd: "{{ open5gs_dbctl_path }} type {{ open5gs_imsi }} 1"
+
+    - name: Drop setup marker
+      ansible.builtin.file:
+        path: "{{ open5gs_setup_marker }}"
+        state: touch
+        mode: "0644"

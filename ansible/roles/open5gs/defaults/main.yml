@@ -1,0 +1,37 @@
+open5gs_repo: https://github.com/open5gs/open5gs.git
+open5gs_version: v2.7.5
+open5gs_src_dir: /opt/open5gs
+open5gs_build_dir: "{{ open5gs_src_dir }}/build"
+open5gs_log_dir: /var/log/open5gs
+
+mongodb_version: "6.0"
+
+open5gs_config_src: /local/repository/etc/open5gs/
+
+open5gs_imsi: "901700123456789"
+open5gs_k: "00112233445566778899aabbccddeeff"
+open5gs_opc: "63BFA50EE6523365FF14C1F45F88737D"
+open5gs_apn: "srsapn"
+
+open5gs_setup_marker: /var/tmp/open5gs-setup-complete
+open5gs_dbctl_url: https://raw.githubusercontent.com/open5gs/open5gs/main/misc/db/open5gs-dbctl
+open5gs_dbctl_path: /var/tmp/open5gs-dbctl
+
+# instance names map to /etc/open5gs/<name>.yaml and build/src/<name>/open5gs-<name>d
+open5gs_services:
+  - nrf
+  - scp
+  - ausf
+  - udm
+  - udr
+  - pcf
+  - bsf
+  - nssf
+  - amf
+  - smf
+  - upf
+  - mme
+  - sgwc
+  - sgwu
+  - hss
+  - pcrf

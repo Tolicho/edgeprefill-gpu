@@ -1,0 +1,15 @@
+- name: OCUDU gNB installation
+  hosts: ocudu_gnb
+  become: true
+  roles:
+    - role: dustinmaas.nextg_utils.srs_oran_sc_ric
+      when: ocudu_enable_du_e2 | default(false) | bool
+    - role: dustinmaas.nextg_utils.ocudu
+    - role: cpu_tuning
+    - role: sdr_iface_tuning
+  post_tasks:
+    - name: Install profile-provided gNB config
+      ansible.builtin.copy:
+        src: /local/repository/etc/ocudu/gnb.yml
+        dest: /etc/ocudu/gnb.yml
+        remote_src: true

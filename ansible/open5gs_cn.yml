@@ -1,0 +1,6 @@
+- name: Open5GS core network installation
+  hosts: open5gs_cn
+  become: true
+  roles:
+    - role: open5gs
+    - role: nat_forwarding

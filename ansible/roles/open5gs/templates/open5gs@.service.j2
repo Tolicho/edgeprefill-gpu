@@ -1,0 +1,13 @@
+[Unit]
+Description=Open5GS %i daemon (built from source at {{ open5gs_src_dir }})
+After=network-online.target mongod.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart={{ open5gs_build_dir }}/src/%i/open5gs-%id -c /etc/open5gs/%i.yaml
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
