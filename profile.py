@@ -49,8 +49,7 @@ On `cudu`:
 
 ```
 # start gNB (numactl pins the process to a single CPU to improve performance)
-sudo numactl --membind=0 --cpunodebind=0 /opt/ocudu/build/apps/gnb/gnb \\
-    -c /etc/ocudu/gnb.yml
+sudo /opt/ocudu/build/apps/gnb/gnb -c /etc/ocudu/gnb.yml
 ```
 
 On `ue`:
