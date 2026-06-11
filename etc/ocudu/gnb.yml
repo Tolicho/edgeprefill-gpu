@@ -14,9 +14,10 @@ ru_sdr:
   device_driver: uhd
   device_args: type=x300
   clock: external
-  srate: 23.04
+  srate: 46.08
   tx_gain: 20
   rx_gain: 10
+  lo_offset: 23.04
 
 cell_cfg:
   dl_arfcn: 368500
