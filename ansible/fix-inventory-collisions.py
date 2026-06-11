@@ -23,12 +23,35 @@ import sys
 INV_PATH = "/local/setup/ansible/inventory.ini"
 
 
-def main() -> int:
+def emulab_experiment_domain() -> str:
+    """Return the Emulab/POWDER experiment domain, e.g.
+    "ocudu-x310.powdersandbox.emulab.net". Falls back to the socket-derived
+    domain if geni-get is unavailable or its output cannot be parsed.
+
+    geni-get returns a slice URN of the form
+        urn:publicid:IDN+<tld>:<project>+slice+<experiment>
+    from which the experiment FQDN suffix is <experiment>.<project>.<tld>.
+    """
+    try:
+        urn = subprocess.check_output(["geni-get", "slice_urn"], text=True).strip()
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        urn = ""
+    if urn.startswith("urn:publicid:IDN+") and "+slice+" in urn:
+        head, exp = urn.rsplit("+slice+", 1)
+        body = head[len("urn:publicid:IDN+"):]
+        if ":" in body:
+            tld, project = body.split(":", 1)
+            return "{}.{}.{}".format(exp, project, tld)
     fqdn = socket.getfqdn()
-    if "." not in fqdn:
-        # No domain to construct an FQDN from; leave the inventory alone.
+    if "." in fqdn:
+        return fqdn.split(".", 1)[1]
+    return ""
+
+
+def main() -> int:
+    domain = emulab_experiment_domain()
+    if not domain:
         return 0
-    domain = fqdn.split(".", 1)[1]
 
     local_ips = set()
     out = subprocess.check_output(["ip", "-4", "-o", "addr", "show"], text=True)

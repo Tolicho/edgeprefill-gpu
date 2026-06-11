@@ -170,7 +170,7 @@ request.addRole(
         playbooks=[Playbook(
             "open5gs",
             path="open5gs.yml",
-            pre_hook="fix-inventory-collisions.py",
+            pre_hook="./fix-inventory-collisions.py",
         )]
     )
 )
