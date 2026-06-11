@@ -65,11 +65,9 @@ progress as a PDU session for the UE is established.
 
 """
 
-# N-heads: every node bootstraps itself, runs only its own role's playbook via
-# ansible's local connection (the bootstrap auto-annotates the local node), and
-# constrains the run-automation entrypoints to itself with --limit <hostname>.
 HEAD_CMD = "sudo -u `geni-get user_urn | cut -f4 -d+` -Hi /bin/sh -c 'EMULAB_ANSIBLE_NOAUTO=1 /local/repository/emulab-ansible-bootstrap/head.sh >/local/logs/setup.log 2>&1'"
-TAIL_CMD = "sudo -u `geni-get user_urn | cut -f4 -d+` -Hi /bin/sh -c 'EXTRA_OVERRIDES=\"--limit $(hostname -s)\" /local/setup/ansible/run-automation.sh >> /local/logs/setup.log 2>&1'"
+TAIL_CMD = "sudo -u `geni-get user_urn | cut -f4 -d+` -Hi /bin/sh -c '/local/setup/ansible/run-automation.sh >> /local/logs/setup.log 2>&1'"
+CLIENT_CMD = "sudo -u `geni-get user_urn | cut -f4 -d+` -Hi /bin/sh -c '/local/repository/emulab-ansible-bootstrap/client.sh >/local/logs/setup.log 2>&1'"
 
 ANSIBLE_VENV = "/local/setup/venv/default/bin"
 ANSIBLE_COLLECTIONS_DIR = "~/.ansible/collections/ansible_collections"
@@ -169,7 +167,11 @@ request.addRole(
     Role(
         "open5gs",
         path="ansible",
-        playbooks=[Playbook("open5gs", path="open5gs.yml")]
+        playbooks=[Playbook(
+            "open5gs",
+            path="open5gs.yml",
+            pre_hook="fix-inventory-collisions.py",
+        )]
     )
 )
 request.addRole(
@@ -214,10 +216,7 @@ cn_link.addInterface(cn_if)
 
 if params.do_deploy:
     cn_node.bindRole(RoleBinding("open5gs"))
-    cn_node.addService(rspec.Execute(shell="sh", command=HEAD_CMD))
-    cn_node.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_CMD))
-    cn_node.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_REQS_CMD))
-    cn_node.addService(rspec.Execute(shell="sh", command=TAIL_CMD))
+    cn_node.addService(rspec.Execute(shell="sh", command=CLIENT_CMD))
 
 # gNB compute node: OCUDU via Ansible.
 nodeb = request.RawPC("cudu")
@@ -275,10 +274,7 @@ ue_usrp_if.addAddress(rspec.IPv4Address("192.168.40.1", "255.255.255.0"))
 
 if params.do_deploy:
     ue.bindRole(RoleBinding("srsran_4g"))
-    ue.addService(rspec.Execute(shell="sh", command=HEAD_CMD))
-    ue.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_CMD))
-    ue.addService(rspec.Execute(shell="sh", command=GALAXY_INSTALL_REQS_CMD))
-    ue.addService(rspec.Execute(shell="sh", command=TAIL_CMD))
+    ue.addService(rspec.Execute(shell="sh", command=CLIENT_CMD))
 
 ue_sdr = request.RawPC("ue-sdr")
 ue_sdr.component_manager_id = COMP_MANAGER_ID
